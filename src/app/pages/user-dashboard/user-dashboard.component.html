@@ -1,0 +1,191 @@
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">TaskFlow</div>
+      <div class="role-badge">User</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Menu</div>
+
+      <button class="nav-item" [class.active]="activeView==='home'" (click)="activeView='home'">
+        Home
+      </button>
+
+      <button class="nav-item" [class.active]="activeView==='tasks'" (click)="activeView='tasks'">
+        Tasks
+      </button>
+
+      <button class="nav-item" [class.active]="activeView==='add-task'" (click)="openAddTask()">
+        Add Task
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" (click)="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- HOME -->
+    <ng-container *ngIf="activeView==='home'">
+      <div class="page-header">
+        <h1>My Dashboard</h1>
+        <p>Track your tasks and stay on top of your work.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-label">Total Tasks</div>
+          <div class="stat-value">{{ tasks.length }}</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">In Progress</div>
+          <div class="stat-value">{{ inProgressCount }}</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Completed</div>
+          <div class="stat-value">{{ completedCount }}</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h3>Recent Tasks</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Due Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of tasks.slice(0, 5)">
+              <td class="id-cell">#{{ t.taskId }}</td>
+              <td>{{ t.title }}</td>
+              <td><span class="badge" [ngClass]="getBadge(t.status)">{{ t.status }}</span></td>
+              <td>{{ t.dueDate | date:'mediumDate' }}</td>
+            </tr>
+            <tr *ngIf="tasks.length === 0">
+              <td colspan="4" class="empty">No tasks yet. Click Add Task to get started.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+
+    <!-- TASKS -->
+    <ng-container *ngIf="activeView==='tasks'">
+      <div class="header-row">
+        <div class="page-header" style="margin-bottom:0">
+          <h1>My Tasks</h1>
+          <p>Manage and track your personal task list.</p>
+        </div>
+        <div class="search-wrap">
+          <input placeholder="Search by title..." [(ngModel)]="searchText" (input)="searchTask()">
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th>Created By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of filteredTasks">
+              <td class="id-cell">#{{ t.taskId }}</td>
+              <td>{{ t.title }}</td>
+              <td>{{ t.description }}</td>
+              <td>{{ t.dueDate | date:'mediumDate' }}</td>
+              <td><span class="badge" [ngClass]="getBadge(t.status)">{{ t.status }}</span></td>
+              <td>{{ getUserName(t.createdBy) }}</td>
+              <td class="action-cell">
+                <button class="btn btn-warning" *ngIf="t.status !== 'Completed'" (click)="editTask(t)">Edit</button>
+                <button class="btn btn-danger" (click)="deleteTask(t.taskId)">Delete</button>
+              </td>
+            </tr>
+            <tr *ngIf="filteredTasks.length === 0">
+              <td colspan="7" class="empty">No tasks found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+
+    <!-- ADD / EDIT TASK -->
+    <ng-container *ngIf="activeView==='add-task' || activeView==='edit-task'">
+      <div class="page-header">
+        <h1>{{ activeView === 'edit-task' ? 'Edit Task' : 'Create New Task' }}</h1>
+        <p>{{ activeView === 'edit-task' ? 'Update the description or status below.' : 'Fill in the details to create a new task.' }}</p>
+      </div>
+
+      <div class="form-card">
+
+        <!-- ADD: all fields -->
+        <ng-container *ngIf="activeView === 'add-task'">
+          <div class="form-group">
+            <label>Title</label>
+            <input class="form-control" placeholder="Enter task title" [(ngModel)]="task.title">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input class="form-control" placeholder="Enter task description" [(ngModel)]="task.description">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select class="form-control" [(ngModel)]="task.status">
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Due Date</label>
+              <input class="form-control" type="date" [(ngModel)]="task.dueDate">
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- EDIT: description + status only -->
+        <ng-container *ngIf="activeView === 'edit-task'">
+          <div class="form-group">
+            <label>Description</label>
+            <input class="form-control" [(ngModel)]="task.description">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select class="form-control" [(ngModel)]="task.status">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </ng-container>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" (click)="saveTask()">
+            {{ activeView === 'edit-task' ? 'Update Task' : 'Save Task' }}
+          </button>
+          <button class="btn btn-ghost" (click)="activeView = 'tasks'">Cancel</button>
+        </div>
+      </div>
+    </ng-container>
+
+  </main>
+</div>
